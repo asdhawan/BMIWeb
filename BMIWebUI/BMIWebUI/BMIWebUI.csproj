@@ -156,6 +156,7 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Models\Document.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -198,7 +199,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
-    <Folder Include="Models\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fonts\glyphicons-halflings-regular.woff" />
@@ -212,6 +212,20 @@
   <ItemGroup>
     <None Include="packages.config" />
     <Content Include="Scripts\jquery-1.10.2.min.map" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\CommonEFUtils\CommonEFUtils\CommonEFUtils.csproj">
+      <Project>{44ce5b33-f7a4-42b9-bfb8-40c96ef996e3}</Project>
+      <Name>CommonEFUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\CommonRestUtils\CommonRestUtils.csproj">
+      <Project>{30ebefb0-486b-4c7c-b10a-d6dc37f8f343}</Project>
+      <Name>CommonRestUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\CommonUtils\CommonUtils\CommonUtils.csproj">
+      <Project>{4ae89c08-9a33-4ac2-8d65-0451edfa79e5}</Project>
+      <Name>CommonUtils</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
