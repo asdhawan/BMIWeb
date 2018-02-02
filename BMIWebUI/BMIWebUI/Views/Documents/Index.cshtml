@@ -1,0 +1,73 @@
+﻿@model BMIWebUI.Models.Document
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>My Documents</h2>
+<script type="text/javascript">
+    function showErrorMessage(sCall, sType, sError, jqXHR) {
+        //Temporary
+        alert(sError);
+    }
+    function getDocuments(clbk) {
+        $.getJSON("/api/documents")
+            .done(function (data) {
+                clbk(data);
+            })
+            .fail(function (jqXHR, textStatus, errorThrown) {
+                //alert('Status: ' + textStatus + ', Error: ' + errorThrown);
+                showErrorMessage("getDocuments", "ERROR", 'Status: ' + textStatus + ', Error: ' + errorThrown);
+            });
+    }
+
+    function clbk_getDocuments(data) {
+        var hrefAppList = $('#appList');
+        hrefAppList.empty();
+
+        $.each(data, function (key, item) {
+            var documentRow = $('#documentRow').clone().attr('id', 'documentRow' + item.DocumentId).show();
+            documentRow.find('#documentId').text(item.DocumentId);
+            documentRow.find('#documentName').text(item.DocumentName);
+            $('#documentsTable').find('tbody').append(documentRow);
+        });
+    }
+
+    $(document).ready(function () {
+        getDocuments(clbk_getDocuments);
+    });
+</script>
+<style type="text/css">
+</style>
+<div class="row">
+    <div class="col-lg-12">
+        <div class="panel panel-primary">
+            <div class="panel-heading">Document List</div>
+            <div class="panel-body">
+                <table id="documentsTable" class="table table-condensed">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@* html snippet templates *@
+<table style="visibility: hidden;">
+    <tr id="documentRow">
+        <td><i id="documentIcon" class="fa fa-file"></i></td>
+        <td><span id="documentId"></span></td>
+        <td><span id="documentName"></span></td>
+        <td>
+            <button id="btnSignNow" class="btn btn-xs btn-primary ptBtn" type="button">Sign Now</button>
+            <button id="btnSendToSign" class="btn btn-xs btn-primary ptBtn" type="button">Send to Sign</button>
+        </td>
+    </tr>
+</table>
