@@ -1,6 +1,10 @@
 ﻿using BMIWebUI.Models;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
+using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Description;
 
@@ -12,14 +16,30 @@ namespace BMIWebUI.Controllers {
         [ResponseType(typeof(IEnumerable<Document>))]
         public HttpResponseMessage GetDocuments() {
             return ExecuteRequest(() => {
-                List<Document> dummyDocs = new List<Document>();
-                dummyDocs.Add(new Document() { DocumentId = 1, DocumentName = "Declaracion de Buenas Salud VVV.V.pdf", DocuSignableYN = true, DocuSignTemplateId = "" });
-                dummyDocs.Add(new Document() { DocumentId = 2, DocumentName = "BMI-Aviation-VVV.V.pdf", DocuSignableYN = true, DocuSignTemplateId = "" });
-                dummyDocs.Add(new Document() { DocumentId = 3, DocumentName = "LI-Endorsements – Policy XXXXXXXXXXXX – Name – mm-dd-yyy-.pdf", DocuSignableYN = false, DocuSignTemplateId = "" });
-                dummyDocs.Add(new Document() { DocumentId = 4, DocumentName = "declaracion de no fumador – declaration of non-smoker status bmic_1.pdf", DocuSignableYN = true, DocuSignTemplateId = "" });
-                return dummyDocs;
+                return DataStore.DocumentsRepository;
             });
         }
 
+        [Route("{documentId}")]
+        [HttpGet]
+        [ResponseType(typeof(Document))]
+        public HttpResponseMessage GetDocument(int documentId) {
+            return ExecuteRequest(() => {
+                return DataStore.DocumentsRepository.Where(x => x.DocumentId == documentId).FirstOrDefault();
+            });
+        }
+
+        [Route("{documentId}/blob")]
+        [HttpGet]
+        [ResponseType(typeof(DocumentBlob))]
+        public HttpResponseMessage GetDocuments(int documentId) {
+            return ExecuteRequest(() => {
+                string appDataRoot = HostingEnvironment.MapPath("~/App_Data");
+                Document d = DataStore.DocumentsRepository.Where(x => x.DocumentId == documentId).FirstOrDefault();
+                return new DocumentBlob() {
+                    DocumentPdfBase64Encoded = Convert.ToBase64String(File.ReadAllBytes(appDataRoot + Path.DirectorySeparatorChar + d.DocumentName))
+                };
+            });
+        }
     }
 }

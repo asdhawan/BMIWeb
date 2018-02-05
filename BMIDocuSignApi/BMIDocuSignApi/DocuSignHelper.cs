@@ -76,7 +76,7 @@ namespace BMIDocuSignApi {
         //    return viewUrl.Url;
         //}
 
-        private static EnvelopeSummary CreateAndSendEnvelope(string documentName, string documentPdfBase64Encoded, string docuSignTemplateId, string subject, List<Signer> signers) {
+        private static EnvelopeSummary CreateAndSendEnvelope(string documentUniqueId, string documentName, string documentPdfBase64Encoded, string docuSignTemplateId, string subject, List<Signer> signers) {
             EnvelopeSummary retVal = null;
 
             InitializeApiClient();
@@ -91,12 +91,12 @@ namespace BMIDocuSignApi {
                 throw new Exception("Error loading template information from DocuSign");
             else {
                 List<Document> documentList = new List<Document>();
-
+                
                 EnvelopeDefinition envDef = new EnvelopeDefinition() {
                     EmailSubject = subject,
                     TemplateId = docuSignTemplateId,
                     TemplateRoles = new List<TemplateRole>(),
-                    Documents = BuildDocumentList(documentName, documentPdfBase64Encoded)
+                    Documents = BuildDocumentList(envTemplate.Documents[0].DocumentId, documentName, documentPdfBase64Encoded)
                 };
 
                 EnvelopesApi envelopesApi = new EnvelopesApi();
@@ -153,10 +153,11 @@ namespace BMIDocuSignApi {
             rc.Execute(updateReq);
         }
 
-        private static List<Document> BuildDocumentList(string documentName, string documentPdfBase64Encoded) {
+        private static List<Document> BuildDocumentList(string documentUniqueId, string documentName, string documentPdfBase64Encoded) {
             List<Document> dsDocList = new List<Document>();
             dsDocList.Add(new Document() {
                 DocumentBase64 = documentPdfBase64Encoded,
+                DocumentId = documentUniqueId,
                 Name = documentName
             });
             return dsDocList;
@@ -308,7 +309,7 @@ namespace BMIDocuSignApi {
                 if (signerList.Count == 0)
                     throw new Exception("Not enough recipients. At least 1 signer is required to proceed.");
 
-                EnvelopeSummary envSummary = CreateAndSendEnvelope(documentName, documentPdfBase64Encoded, docuSignTemplateId, subject, signerList);
+                EnvelopeSummary envSummary = CreateAndSendEnvelope(documentUniqueId, documentName, documentPdfBase64Encoded, docuSignTemplateId, subject, signerList);
 
                 if (signInPlace && !string.IsNullOrEmpty(inPlaceSigningPageUrl)) {
                     foreach (InPlaceSigner inPlaceSigner in createEnvelopeResponse.InPlaceSigners) {

@@ -2,10 +2,12 @@
 using DocuSignApiClasses;
 using System.Net.Http;
 using System.Web.Http;
+using System.Web.Http.Cors;
 using System.Web.Http.Description;
 
 namespace BMIDocuSignApi.Controllers {
     [RoutePrefix("api/envelopes")]
+    [EnableCors("*", "*", "*")]
     public class EnvelopesController : BaseApiController {
         [Route("")]
         [HttpPost]

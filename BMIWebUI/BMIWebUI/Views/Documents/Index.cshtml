@@ -29,12 +29,122 @@
             var documentRow = $('#documentRow').clone().attr('id', 'documentRow' + item.DocumentId).show();
             documentRow.find('#documentId').text(item.DocumentId);
             documentRow.find('#documentName').text(item.DocumentName);
+            var btnSignNow = documentRow.find('#btnSignNow');
+            btnSignNow.data("documentId", item.DocumentId);
+            btnSignNow.off("click").click(handleSignNowClick);
+            var btnSendToSign = documentRow.find('#btnSendToSign');
+            btnSendToSign.data("documentId", item.DocumentId);
+            btnSendToSign.off("click").click(handleSendToSignClick);
             $('#documentsTable').find('tbody').append(documentRow);
         });
     }
 
+    function handleSignNowClick() {
+        var documentId = $(this).data("documentId");
+        selectedDocumentId = documentId;
+        $.when(
+            getAsync("/api/documents/" + documentId)
+        ).then(function (data) {
+            $.when(
+                getAsync(docuSignApiBaseUrl + "/api/templates/" + data.DocuSignTemplateId + "/recipients")
+            ).then(function (recipients) {
+                $.each(recipients, function (jey, recipient) {
+                    alert(recipient);
+                });
+            });
+        });
+    }
+
+    function handleSendToSignClick() {
+        var documentId = $(this).data("documentId");
+        selectedDocumentId = documentId;
+        $.when(
+            getAsync("/api/documents/" + documentId)
+        ).then(function (data) {
+            $.when(
+                getAsync(docuSignApiBaseUrl + "/api/templates/" + data.DocuSignTemplateId + "/recipients")
+            ).then(function (recipients) {
+                $.each(recipients, function (jey, recipient) {
+                    var recipientRow = $('#recipientRow').clone().attr('id', 'recipientRow' + recipient.RecipientID).show();
+                    recipientRow.find('#roleName').text(recipient.RoleName);
+                    recipientRow.find('#userName').text(recipient.UserName);
+                    recipientRow.find('#userEmail').text(recipient.Email );
+                    $('#recipientsTable').find('tbody').append(recipientRow);
+                });
+
+                $('#sendToSignModal').modal({ show: true, backdrop: 'static', keyboard: false });
+            });
+        });
+    }
+
+    function handleSubmitSendToSign() {
+        var documentId = selectedDocumentId;
+        $.when(
+            getAsync("/api/documents/" + documentId),
+            getAsync("/api/documents/" + documentId + "/blob")
+        ).then(function (document, blob) {
+            var requestData = {
+                "DocumentUniqueId": documentId,
+                "DocumentName": document.DocumentName,
+                "DocumentPdfBase64Encoded": blob.DocumentPdfBase64Encoded,
+                "DocuSignTemplateId": document.DocuSignTemplateId,
+                "EnvelopeSubject": "Please sign this document",
+                "SignInPlaceYN": false,
+                "Signers": []
+            };
+
+            $('#recipientsTable > tbody  > tr').each(function() {
+                var roleName = $(this).find('#roleName').text();
+                var userName = $(this).find('#userName').val();
+                var userEmail = $(this).find('#userEmail').val();
+                requestData.Signers.push({
+                    "TemplateID": document.DocuSignTemplateId,
+                    "RoleName": roleName,
+                    "UserName": userName,
+                    "Email": userEmail,
+                    "RequiredYN": true,
+                    "LockedYN": true
+                });
+            });
+
+            $.when(
+                postAsync(docuSignApiBaseUrl + "/api/envelopes", requestData)
+            ).then(function (response) {
+                alert(response);
+            });
+        });
+    }
+
+    function getAsync(resource) {
+        var headers = new Headers();
+        var options = {
+            method: 'GET',
+            mode: 'cors'
+        };
+        return fetch(resource, options)
+            .then(this.handleErrors)
+            .then((response) => response.json())
+            .catch((error) => console.log(error.message));
+    }
+
+    function postAsync(resource, data) {
+        var headers = new Headers();
+        headers.set('Content-Type', 'application/json');
+        var options = {
+            method: 'POST',
+            mode: 'cors',
+            headers: headers,
+            body: JSON.stringify(data)
+        };
+        return fetch(resource, options)
+            .then((response) => response.json());
+    }
+
+    var docuSignApiBaseUrl = '@System.Configuration.ConfigurationManager.AppSettings["DocuSignApiBaseUrl"]';
+    var selectedDocumentId = -1;
     $(document).ready(function () {
         getDocuments(clbk_getDocuments);
+        $('#btnSubmitSendToSign').click(handleSubmitSendToSign);
     });
 </script>
 <style type="text/css">
@@ -59,6 +169,33 @@
         </div>
     </div>
 </div>
+<div id="sendToSignModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Send to Sign</h4>
+            </div>
+            <div class="modal-body">
+                <table id="recipientsTable" class="table table-condensed">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Role</th>
+                            <th>Name</th>
+                            <th>E-Mail</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button id="btnSubmitSendToSign" type="button" class="btn btn-primary">Submit</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
 @* html snippet templates *@
 <table style="visibility: hidden;">
     <tr id="documentRow">
@@ -69,5 +206,13 @@
             <button id="btnSignNow" class="btn btn-xs btn-primary ptBtn" type="button">Sign Now</button>
             <button id="btnSendToSign" class="btn btn-xs btn-primary ptBtn" type="button">Send to Sign</button>
         </td>
+    </tr>
+</table>
+<table style="visibility: hidden;">
+    <tr id="recipientRow">
+        <td><i id="recipientIcon" class="fa fa-signing"></i></td>
+        <td><span id="roleName"></span></td>
+        <td><input type="text" id="userName" /></td>
+        <td><input type="email" id="userEmail" /></td>
     </tr>
 </table>

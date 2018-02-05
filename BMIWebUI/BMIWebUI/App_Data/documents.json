@@ -1,0 +1,26 @@
+﻿[
+  {
+    "DocumentId": 1,
+    "DocumentName": "NBAviationENG.pdf",
+    "DocuSignableYN": true,
+    "DocuSignTemplateId": "102b8867-b914-4373-9f10-6797dd7feb97"
+  },
+  {
+    "DocumentId": 2,
+    "DocumentName": "NBGoodHealthDecSPA.pdf",
+    "DocuSignableYN": false,
+    "DocuSignTemplateId": "083b1a3c-7ecc-4d06-b183-192df0998e5c"
+  },
+  {
+    "DocumentId": 3,
+    "DocumentName": "NBLIEndorsENG.pdf",
+    "DocuSignableYN": true,
+    "DocuSignTemplateId": "baffbaf0-546b-4443-8bba-d529cc12d2ab"
+  },
+  {
+    "DocumentId": 4,
+    "DocumentName": "NBNonSmokerDecENGSPA.pdf",
+    "DocuSignableYN": false,
+    "DocuSignTemplateId": "c092765f-d1d8-4b96-80b4-7a0f863fa43b"
+  }
+]
