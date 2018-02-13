@@ -12,7 +12,7 @@ namespace BMIDocuSignApi.Controllers {
         [Route("")]
         [HttpPost]
         [ResponseType(typeof(CreateEnvelopeResponse))]
-        public HttpResponseMessage GetRecipients(CreateEnvelopeRequest request) {
+        public HttpResponseMessage CreateEnvelope(CreateEnvelopeRequest request) {
             return ExecuteRequest(() => {
                 return DocuSignHelper.ProcessNewDocuSignEnvelope(
                     request.DocumentUniqueId,
@@ -29,7 +29,7 @@ namespace BMIDocuSignApi.Controllers {
         [Route("{docuSignEnvelopeId}/status")]
         [HttpGet]
         [ResponseType(typeof(EnvelopeStatus))]
-        public HttpResponseMessage GetRecipients(string docuSignEnvelopeId) {
+        public HttpResponseMessage GetEnvelopeStatus(string docuSignEnvelopeId) {
             return ExecuteRequest(() => {
                 return DocuSignHelper.GetEnvelopeStatus(docuSignEnvelopeId);
             });
@@ -38,9 +38,18 @@ namespace BMIDocuSignApi.Controllers {
         [Route("{docuSignEnvelopeId}/inplacesignurl/{clientUserId}")]
         [HttpGet]
         [ResponseType(typeof(InPlaceSigningResponse))]
-        public HttpResponseMessage GetInPlaceSigningUrl(string signInPlaceReturnUrl, string docuSignEnvelopeId, string clientUserId) {
+        public HttpResponseMessage GetInPlaceSigningUrl(string docuSignEnvelopeId, string clientUserId, string signInPlaceReturnUrl) {
             return ExecuteRequest(() => {
                 return new InPlaceSigningResponse() { SigningUrl = DocuSignHelper.GetRecipientViewUrl(signInPlaceReturnUrl, docuSignEnvelopeId, clientUserId) };
+            });
+        }
+
+        [Route("{docuSignEnvelopeId}/nextinplacesignurl")]
+        [HttpGet]
+        [ResponseType(typeof(InPlaceSigningResponse))]
+        public HttpResponseMessage GetNextInPlaceSigningUrl(string docuSignEnvelopeId, string signInPlaceReturnUrl) {
+            return ExecuteRequest(() => {
+                return new InPlaceSigningResponse() { SigningUrl = DocuSignHelper.GetNextRecipientViewUrl(signInPlaceReturnUrl, docuSignEnvelopeId) };
             });
         }
     }

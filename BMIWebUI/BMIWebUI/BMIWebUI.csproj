@@ -168,9 +168,11 @@
     <Compile Include="Controllers\DocumentsApiController.cs" />
     <Compile Include="Controllers\DocumentsController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\SignInPlaceController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Models\SignInPlaceData.cs" />
     <Compile Include="Models\DocumentBlob.cs" />
     <Compile Include="Models\Document.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -266,6 +268,7 @@
     <Content Include="Scripts\popper-utils.min.js.map" />
     <Content Include="Scripts\popper-utils.js.map" />
     <Content Include="Views\Documents\Index.cshtml" />
+    <Content Include="Views\SignInPlace\Index.cshtml" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -285,6 +288,10 @@
     <ProjectReference Include="..\..\CommonUtils\CommonUtils\CommonUtils.csproj">
       <Project>{4ae89c08-9a33-4ac2-8d65-0451edfa79e5}</Project>
       <Name>CommonUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\CommonWebUtils\CommonWebUtils\CommonWebUtils.csproj">
+      <Project>{5a0991df-507a-40ef-9801-dff0c72da9fa}</Project>
+      <Name>CommonWebUtils</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -42,24 +42,20 @@
     function handleSignNowClick() {
         var documentId = $(this).data("documentId");
         selectedDocumentId = documentId;
-        $.when(
-            getAsync("/api/documents/" + documentId)
-        ).then(function (data) {
-            $.when(
-                getAsync(docuSignApiBaseUrl + "/api/templates/" + data.DocuSignTemplateId + "/recipients")
-            ).then(function (recipients) {
-                $.each(recipients, function (jey, recipient) {
-                    alert(recipient);
-                });
-            });
-        });
+        signingMode = "signNow";
+        showRecipientsModal();
     }
 
     function handleSendToSignClick() {
         var documentId = $(this).data("documentId");
         selectedDocumentId = documentId;
+        signingMode = "sendToSign";
+        showRecipientsModal();
+    }
+
+    function showRecipientsModal() {
         $.when(
-            getAsync("/api/documents/" + documentId)
+            getAsync("/api/documents/" + selectedDocumentId)
         ).then(function (data) {
             $.when(
                 getAsync(docuSignApiBaseUrl + "/api/templates/" + data.DocuSignTemplateId + "/recipients")
@@ -68,7 +64,7 @@
                     var recipientRow = $('#recipientRow').clone().attr('id', 'recipientRow' + recipient.RecipientID).show();
                     recipientRow.find('#roleName').text(recipient.RoleName);
                     recipientRow.find('#userName').text(recipient.UserName);
-                    recipientRow.find('#userEmail').text(recipient.Email );
+                    recipientRow.find('#userEmail').text(recipient.Email);
                     $('#recipientsTable').find('tbody').append(recipientRow);
                 });
 
@@ -77,40 +73,75 @@
         });
     }
 
-    function handleSubmitSendToSign() {
-        var documentId = selectedDocumentId;
-        $.when(
-            getAsync("/api/documents/" + documentId),
-            getAsync("/api/documents/" + documentId + "/blob")
-        ).then(function (document, blob) {
-            var requestData = {
-                "DocumentUniqueId": documentId,
-                "DocumentName": document.DocumentName,
-                "DocumentPdfBase64Encoded": blob.DocumentPdfBase64Encoded,
-                "DocuSignTemplateId": document.DocuSignTemplateId,
-                "EnvelopeSubject": "Please sign this document",
-                "SignInPlaceYN": false,
-                "Signers": []
-            };
+    function createNewDocuSignEnvelopeRequest(documentId, documentName, documentPdfBase64Encoded, docuSignTemplateId, signInPlaceYN) {
+        var requestData = {
+            "DocumentUniqueId": documentId,
+            "DocumentName": documentName,
+            "DocumentPdfBase64Encoded": documentPdfBase64Encoded,
+            "DocuSignTemplateId": docuSignTemplateId,
+            "EnvelopeSubject": "Please sign this document",
+            "SignInPlaceYN": signInPlaceYN,
+            "SignInPlaceReturnUrl": signInPlaceReturnUrl,
+            "Signers": []
+        };
 
-            $('#recipientsTable > tbody  > tr').each(function() {
-                var roleName = $(this).find('#roleName').text();
-                var userName = $(this).find('#userName').val();
-                var userEmail = $(this).find('#userEmail').val();
-                requestData.Signers.push({
-                    "TemplateID": document.DocuSignTemplateId,
-                    "RoleName": roleName,
-                    "UserName": userName,
-                    "Email": userEmail,
-                    "RequiredYN": true,
-                    "LockedYN": true
-                });
+        $('#recipientsTable > tbody  > tr').each(function () {
+            var roleName = $(this).find('#roleName').text();
+            var userName = $(this).find('#userName').val();
+            var userEmail = $(this).find('#userEmail').val();
+            requestData.Signers.push({
+                "TemplateID": document.DocuSignTemplateId,
+                "RoleName": roleName,
+                "UserName": userName,
+                "Email": userEmail,
+                "RequiredYN": true,
+                "LockedYN": true
             });
+        });
+
+        return requestData;
+    }
+
+    function handleSubmit() {
+        if (signingMode === "signNow") {
+            handleSubmitSignNow();
+        } else if (signingMode === "sendToSign") {
+            handleSubmitSendToSign();
+        }
+    }
+
+    function handleSubmitSendToSign() {
+        $.when(
+            getAsync("/api/documents/" + selectedDocumentId),
+            getAsync("/api/documents/" + selectedDocumentId + "/blob")
+        ).then(function (document, blob) {
+            var requestData = createNewDocuSignEnvelopeRequest(selectedDocumentId, document.DocumentName, blob.DocumentPdfBase64Encoded, document.DocuSignTemplateId, false);
 
             $.when(
                 postAsync(docuSignApiBaseUrl + "/api/envelopes", requestData)
             ).then(function (response) {
-                alert(response);
+                alert(response.SuccessYN);
+            });
+        });
+    }
+
+    function handleSubmitSignNow() {
+        $.when(
+            getAsync("/api/documents/" + selectedDocumentId),
+            getAsync("/api/documents/" + selectedDocumentId + "/blob")
+        ).then(function (document, blob) {
+            var requestData = createNewDocuSignEnvelopeRequest(selectedDocumentId, document.DocumentName, blob.DocumentPdfBase64Encoded, document.DocuSignTemplateId, true);
+
+            $.when(
+                postAsync(docuSignApiBaseUrl + "/api/envelopes", requestData)
+            ).then(function (response) {
+                alert(response.SuccessYN);
+                var firstInPlaceSigner = response.InPlaceSigners[0];
+                $.when(
+                    getAsync(docuSignApiBaseUrl + "/api/envelopes/" + response.EnvelopeId + "/inplacesignurl/" + firstInPlaceSigner.ClientUserId + "?signInPlaceReturnUrl=" + signInPlaceReturnUrl)
+                ).then(function (inplaceSignerResponse) {
+                    alert(inplaceSignerResponse.SigningUrl);
+                });
             });
         });
     }
@@ -141,10 +172,12 @@
     }
 
     var docuSignApiBaseUrl = '@System.Configuration.ConfigurationManager.AppSettings["DocuSignApiBaseUrl"]';
+    var signInPlaceReturnUrl = '@System.Configuration.ConfigurationManager.AppSettings["SignInPlaceReturnUrl"]';
     var selectedDocumentId = -1;
+    var signingMode = "";
     $(document).ready(function () {
         getDocuments(clbk_getDocuments);
-        $('#btnSubmitSendToSign').click(handleSubmitSendToSign);
+        $('#btnSubmit').click(handleSubmit);
     });
 </script>
 <style type="text/css">
@@ -191,7 +224,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button id="btnSubmitSendToSign" type="button" class="btn btn-primary">Submit</button>
+                <button id="btnSubmit" type="button" class="btn btn-primary">Submit</button>
             </div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->

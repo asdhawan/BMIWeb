@@ -91,7 +91,7 @@ namespace BMIDocuSignApi {
                 throw new Exception("Error loading template information from DocuSign");
             else {
                 List<Document> documentList = new List<Document>();
-                
+
                 EnvelopeDefinition envDef = new EnvelopeDefinition() {
                     EmailSubject = subject,
                     TemplateId = docuSignTemplateId,
@@ -281,6 +281,8 @@ namespace BMIDocuSignApi {
                 InPlaceSigners = new List<InPlaceSigner>()
             };
             try {
+                InitializeApiClient();
+
                 IEnumerable<Signer> signers = GetTemplateSigners(docuSignTemplateId);
                 List<Signer> signerList = new List<Signer>();
 
@@ -311,21 +313,57 @@ namespace BMIDocuSignApi {
 
                 EnvelopeSummary envSummary = CreateAndSendEnvelope(documentUniqueId, documentName, documentPdfBase64Encoded, docuSignTemplateId, subject, signerList);
 
-                if (signInPlace && !string.IsNullOrEmpty(inPlaceSigningPageUrl)) {
-                    foreach (InPlaceSigner inPlaceSigner in createEnvelopeResponse.InPlaceSigners) {
-                        inPlaceSigner.SigningUrl = GetRecipientViewUrl(inPlaceSigningPageUrl, envSummary.EnvelopeId, inPlaceSigner.ClientUserId);
-                    }
-                }
+                //if (signInPlace && !string.IsNullOrEmpty(inPlaceSigningPageUrl)) {
+                //    //get envelope recipients to get the recipient user ids
+                //    EnvelopesApi envelopesApi = new EnvelopesApi();
+                //    Recipients recipients = envelopesApi.ListRecipients(SystemConfiguration.DocuSignAccountId, envSummary.EnvelopeId);
+                //    foreach (InPlaceSigner inPlaceSigner in createEnvelopeResponse.InPlaceSigners) {
+                //        Signer signer = recipients.Signers.FirstOrDefault(x => x.ClientUserId == inPlaceSigner.ClientUserId);
+                //        if (signer != null) {
+                //            inPlaceSigner.SigningUrl = GetRecipientViewUrl(inPlaceSigningPageUrl, envSummary.EnvelopeId, inPlaceSigner.ClientUserId, signer.UserId);
+                //        }
+                //    }
+                //}
                 createEnvelopeResponse.SuccessYN = envSummary.EnvelopeId != null;
+                createEnvelopeResponse.EnvelopeId = envSummary.EnvelopeId;
             } catch { /*Do something*/ }
             return createEnvelopeResponse;
         }
 
         public static string GetRecipientViewUrl(string inPlaceSigningPageUrl, string docuSignEnvelopeId, string clientUserId) {
+            string retUrl = null;
+
+            InitializeApiClient();
+
+            EnvelopesApi envelopesApi = new EnvelopesApi();
+            Recipients recipients = envelopesApi.ListRecipients(SystemConfiguration.DocuSignAccountId, docuSignEnvelopeId);
+            Signer signer = recipients.Signers.FirstOrDefault(x => x.ClientUserId == clientUserId);
+            if (signer != null) {
+                retUrl = GetRecipientViewUrl(inPlaceSigningPageUrl, docuSignEnvelopeId, clientUserId, signer.UserId);
+            }
+            return retUrl;
+        }
+
+        public static string GetNextRecipientViewUrl(string inPlaceSigningPageUrl, string docuSignEnvelopeId) {
+            string retUrl = null;
+
+            InitializeApiClient();
+
+            EnvelopesApi envelopesApi = new EnvelopesApi();
+            Recipients recipients = envelopesApi.ListRecipients(SystemConfiguration.DocuSignAccountId, docuSignEnvelopeId);
+            Signer signer = recipients.Signers.FirstOrDefault(x => !string.IsNullOrEmpty(x.ClientUserId) && x.Status != "completed");
+            if (signer != null) {
+                retUrl = GetRecipientViewUrl(inPlaceSigningPageUrl, docuSignEnvelopeId, signer.ClientUserId, signer.UserId);
+            }
+            return retUrl;
+        }
+
+        private static string GetRecipientViewUrl(string inPlaceSigningPageUrl, string docuSignEnvelopeId, string clientUserId, string userId) {
             RecipientViewRequest viewOptions = new RecipientViewRequest() {
-                ReturnUrl = inPlaceSigningPageUrl,
+                ReturnUrl = string.Format("{0}?envelopeId={1}", inPlaceSigningPageUrl, docuSignEnvelopeId),
                 ClientUserId = clientUserId,
-                AuthenticationMethod = "none"
+                UserId = userId,
+                AuthenticationMethod = "none",                
             };
 
             EnvelopesApi envelopesApi = new EnvelopesApi();
