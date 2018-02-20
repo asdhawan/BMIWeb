@@ -15,12 +15,12 @@ namespace BMIDocuSignApi.Controllers {
         public HttpResponseMessage CreateEnvelope(CreateEnvelopeRequest request) {
             return ExecuteRequest(() => {
                 return DocuSignHelper.ProcessNewDocuSignEnvelope(
-                    request.DocumentUniqueId,
-                    request.DocumentName,
-                    request.DocumentPdfBase64Encoded,
+                    request.EnvelopeRequestId,
                     request.DocuSignTemplateId,
                     request.EnvelopeSubject,
                     request.Signers,
+                    request.DocumentName,
+                    request.DocumentPdfBase64Encoded,
                     request.SignInPlaceYN,
                     request.SignInPlaceReturnUrl);
             });

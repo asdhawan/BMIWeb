@@ -1,66 +1,66 @@
 ﻿@{
-    Layout = null;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.HideNav = true;
+    ViewBag.HideFooter = true;
 }
 
-<!DOCTYPE html>
+<script type="text/javascript">
+    function showErrorMessage(sCall, sType, sError, jqXHR) {
+        //Temporary
+        alert(sError);
+    }
 
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <title></title>
-    @Scripts.Render("~/bundles/jquery")
-</head>
-<body>
-    <script type="text/javascript">
-        function showErrorMessage(sCall, sType, sError, jqXHR) {
-            //Temporary
-            alert(sError);
-        }
-
-        function getNextSigningUrl(envelopeId) {
-            $.when(
-                getAsync(docuSignApiBaseUrl + "/api/envelopes/" + envelopeId + "/nextinplacesignurl?signInPlaceReturnUrl=" + signInPlaceReturnUrl)
-            ).then(function (inplaceSignerResponse) {
-                if (inplaceSignerResponse.SigningUrl) {
-                    window.location.href = inplaceSignerResponse.SigningUrl;
-                }
-            });
-        }
-
-        function getAsync(resource) {
-            var headers = new Headers();
-            var options = {
-                method: 'GET',
-                mode: 'cors'
-            };
-            return fetch(resource, options)
-                .then(this.handleErrors)
-                .then((response) => response.json())
-                .catch((error) => console.log(error.message));
-        }
-
-        function postAsync(resource, data) {
-            var headers = new Headers();
-            headers.set('Content-Type', 'application/json');
-            var options = {
-                method: 'POST',
-                mode: 'cors',
-                headers: headers,
-                body: JSON.stringify(data)
-            };
-            return fetch(resource, options)
-                .then((response) => response.json());
-        }
-
-        var docuSignApiBaseUrl = '@System.Configuration.ConfigurationManager.AppSettings["DocuSignApiBaseUrl"]';
-        var signInPlaceReturnUrl = '@System.Configuration.ConfigurationManager.AppSettings["SignInPlaceReturnUrl"]';
-        $(document).ready(function () {
-            getNextSigningUrl('@ViewBag.EnvelopeId');
+    function getNextSigningUrl(envelopeId) {
+        $.when(
+            getAsync(docuSignApiBaseUrl + "/api/envelopes/" + envelopeId + "/nextinplacesignurl?signInPlaceReturnUrl=" + signInPlaceReturnUrl)
+        ).then(function (inplaceSignerResponse) {
+            if (inplaceSignerResponse.SigningUrl) {
+                window.location.href = inplaceSignerResponse.SigningUrl;
+            } else {
+                window.close();
+            }
         });
-    </script>
-    <div>
-        Event: <b>@ViewBag.Event</b><br />
-        EnvelopeId: <b>@ViewBag.EnvelopeId</b>
-    </div>
-</body>
-</html>
+    }
+
+    function getAsync(resource) {
+        var headers = new Headers();
+        var options = {
+            method: 'GET',
+            mode: 'cors'
+        };
+        return fetch(resource, options)
+            .then(this.handleErrors)
+            .then((response) => response.json())
+            .catch((error) => console.log(error.message));
+    }
+
+    function postAsync(resource, data) {
+        var headers = new Headers();
+        headers.set('Content-Type', 'application/json');
+        var options = {
+            method: 'POST',
+            mode: 'cors',
+            headers: headers,
+            body: JSON.stringify(data)
+        };
+        return fetch(resource, options)
+            .then((response) => response.json());
+    }
+
+    var docuSignApiBaseUrl = '@System.Configuration.ConfigurationManager.AppSettings["DocuSignApiBaseUrl"]';
+    var signInPlaceReturnUrl = '@System.Configuration.ConfigurationManager.AppSettings["SignInPlaceReturnUrl"]';
+    $(document).ready(function () {
+        var envelopeId = '@ViewBag.EnvelopeId';
+        if (envelopeId) {
+            getNextSigningUrl(envelopeId);
+        }
+    });
+</script>
+<div hidden>
+    Event: <b>@ViewBag.Event</b><br />
+    EnvelopeId: <b>@ViewBag.EnvelopeId</b>
+</div>
+<div class="center-block text-center" style="margin-top: 200px;">
+    <i class="fa fa-5x fa-circle-o-notch fa-spin"></i><br />
+    Loading...
+</div>

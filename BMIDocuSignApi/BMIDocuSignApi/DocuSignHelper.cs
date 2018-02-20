@@ -76,7 +76,7 @@ namespace BMIDocuSignApi {
         //    return viewUrl.Url;
         //}
 
-        private static EnvelopeSummary CreateAndSendEnvelope(string documentUniqueId, string documentName, string documentPdfBase64Encoded, string docuSignTemplateId, string subject, List<Signer> signers) {
+        private static EnvelopeSummary CreateAndSendEnvelope(string envelopeRequestId, string docuSignTemplateId, string subject, List<Signer> signers, string documentName = null, string documentPdfBase64Encoded =null) {
             EnvelopeSummary retVal = null;
 
             InitializeApiClient();
@@ -95,9 +95,14 @@ namespace BMIDocuSignApi {
                 EnvelopeDefinition envDef = new EnvelopeDefinition() {
                     EmailSubject = subject,
                     TemplateId = docuSignTemplateId,
-                    TemplateRoles = new List<TemplateRole>(),
-                    Documents = BuildDocumentList(envTemplate.Documents[0].DocumentId, documentName, documentPdfBase64Encoded)
+                    TemplateRoles = new List<TemplateRole>()
                 };
+
+                if (documentName != null && documentPdfBase64Encoded != null) {
+                    envDef.Documents = BuildDocumentList(envTemplate.Documents[0].DocumentId, documentName, documentPdfBase64Encoded);
+                } else {
+                    envDef.Documents = envTemplate.Documents;
+                }
 
                 EnvelopesApi envelopesApi = new EnvelopesApi();
 
@@ -153,11 +158,11 @@ namespace BMIDocuSignApi {
             rc.Execute(updateReq);
         }
 
-        private static List<Document> BuildDocumentList(string documentUniqueId, string documentName, string documentPdfBase64Encoded) {
+        private static List<Document> BuildDocumentList(string documentId, string documentName, string documentPdfBase64Encoded) {
             List<Document> dsDocList = new List<Document>();
             dsDocList.Add(new Document() {
                 DocumentBase64 = documentPdfBase64Encoded,
-                DocumentId = documentUniqueId,
+                DocumentId = documentId,
                 Name = documentName
             });
             return dsDocList;
@@ -268,16 +273,16 @@ namespace BMIDocuSignApi {
         //}
 
         public static CreateEnvelopeResponse ProcessNewDocuSignEnvelope(
-            string documentUniqueId,
-            string documentName,
-            string documentPdfBase64Encoded,
+            string envelopeRequestId,
             string docuSignTemplateId,
             string subject,
             List<TemplateRecipient> selectedRecipients,
+            string documentName = null,
+            string documentPdfBase64Encoded = null,
             bool signInPlace = false,
             string inPlaceSigningPageUrl = null) {
             CreateEnvelopeResponse createEnvelopeResponse = new CreateEnvelopeResponse() {
-                DocumentUniqueId = documentUniqueId,
+                EnvelopeRequestId = envelopeRequestId,
                 InPlaceSigners = new List<InPlaceSigner>()
             };
             try {
@@ -311,19 +316,8 @@ namespace BMIDocuSignApi {
                 if (signerList.Count == 0)
                     throw new Exception("Not enough recipients. At least 1 signer is required to proceed.");
 
-                EnvelopeSummary envSummary = CreateAndSendEnvelope(documentUniqueId, documentName, documentPdfBase64Encoded, docuSignTemplateId, subject, signerList);
-
-                //if (signInPlace && !string.IsNullOrEmpty(inPlaceSigningPageUrl)) {
-                //    //get envelope recipients to get the recipient user ids
-                //    EnvelopesApi envelopesApi = new EnvelopesApi();
-                //    Recipients recipients = envelopesApi.ListRecipients(SystemConfiguration.DocuSignAccountId, envSummary.EnvelopeId);
-                //    foreach (InPlaceSigner inPlaceSigner in createEnvelopeResponse.InPlaceSigners) {
-                //        Signer signer = recipients.Signers.FirstOrDefault(x => x.ClientUserId == inPlaceSigner.ClientUserId);
-                //        if (signer != null) {
-                //            inPlaceSigner.SigningUrl = GetRecipientViewUrl(inPlaceSigningPageUrl, envSummary.EnvelopeId, inPlaceSigner.ClientUserId, signer.UserId);
-                //        }
-                //    }
-                //}
+                EnvelopeSummary envSummary = CreateAndSendEnvelope(envelopeRequestId, docuSignTemplateId, subject, signerList, documentName, documentPdfBase64Encoded);
+                
                 createEnvelopeResponse.SuccessYN = envSummary.EnvelopeId != null;
                 createEnvelopeResponse.EnvelopeId = envSummary.EnvelopeId;
             } catch { /*Do something*/ }
