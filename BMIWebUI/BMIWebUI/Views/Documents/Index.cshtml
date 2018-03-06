@@ -1,9 +1,7 @@
 ﻿@model BMIWebUI.Models.Document
-
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
 <h2>My Documents</h2>
 <script type="text/javascript">
     function showErrorMessage(sCall, sType, sError, jqXHR) {
@@ -11,7 +9,7 @@
         alert(sError);
     }
     function getDocuments(clbk) {
-        $.getJSON("/api/documents")
+        $.getJSON(siteBaseUrl + "/api/documents")
             .done(function (data) {
                 clbk(data);
             })
@@ -43,7 +41,37 @@
         var documentId = $(this).data("documentId");
         selectedDocumentId = documentId;
         signingMode = "signNow";
-        showRecipientsModal();
+        //showRecipientsModal();
+        var signNowWindow = window.open(signInPlaceReturnUrl, "SignNow", "", true);
+        $.when(
+            getAsync(siteBaseUrl + "/api/documents/" + selectedDocumentId)
+        ).then(function (document) {
+            $.when(
+                getAsync(docuSignApiBaseUrl + "/api/templates/" + document.DocuSignTemplateId + "/recipients")
+            ).then(function (recipients) {
+                $.each(recipients, function (key, recipient) {
+                    recipient.UserName = recipient.RoleName;
+                    recipient.Email = currentUserEmail;
+                });
+
+                //send to docusign
+                var requestData = createNewDocuSignEnvelopeRequest(selectedDocumentId, document.DocuSignTemplateId, true, recipients);
+                $.when(
+                    postAsync(docuSignApiBaseUrl + "/api/envelopes", requestData)
+                ).then(function (response) {
+                    if (response.SuccessYN === true) {
+                        var firstInPlaceSigner = response.InPlaceSigners[0];
+                        $.when(
+                            getAsync(docuSignApiBaseUrl + "/api/envelopes/" + response.EnvelopeId + "/inplacesignurl/" + firstInPlaceSigner.ClientUserId + "?signInPlaceReturnUrl=" + signInPlaceReturnUrl)
+                        ).then(function (inplaceSignerResponse) {
+                            if (inplaceSignerResponse.SigningUrl) {
+                                signNowWindow.location.href = inplaceSignerResponse.SigningUrl;
+                            }
+                        });
+                    }
+                });
+            });
+        });
     }
 
     function handleSendToSignClick() {
@@ -55,7 +83,7 @@
 
     function showRecipientsModal() {
         $.when(
-            getAsync("/api/documents/" + selectedDocumentId)
+            getAsync(siteBaseUrl + "/api/documents/" + selectedDocumentId)
         ).then(function (data) {
             $.when(
                 getAsync(docuSignApiBaseUrl + "/api/templates/" + data.DocuSignTemplateId + "/recipients")
@@ -74,7 +102,7 @@
         });
     }
 
-    function createNewDocuSignEnvelopeRequest(envelopeRequestId, docuSignTemplateId, signInPlaceYN) {
+    function createNewDocuSignEnvelopeRequest(envelopeRequestId, docuSignTemplateId, signInPlaceYN, recipients) {
         var requestData = {
             "EnvelopeRequestId": envelopeRequestId,
             "DocuSignTemplateId": docuSignTemplateId,
@@ -84,18 +112,8 @@
             "Signers": []
         };
 
-        $('#recipientsTable > tbody  > tr').each(function () {
-            var roleName = $(this).find('#roleName').text();
-            var userName = $(this).find('#userName').val();
-            var userEmail = $(this).find('#userEmail').val();
-            requestData.Signers.push({
-                "TemplateID": document.DocuSignTemplateId,
-                "RoleName": roleName,
-                "UserName": userName,
-                "Email": userEmail,
-                "RequiredYN": true,
-                "LockedYN": true
-            });
+        $.each(recipients, function(key, recipient){
+            requestData.Signers.push(recipient);
         });
 
         return requestData;
@@ -109,11 +127,31 @@
         }
     }
 
+    function getRecipientsFromModal() {
+        var recipients = [];
+        $('#recipientsTable > tbody  > tr').each(function () {
+            var roleName = $(this).find('#roleName').text();
+            var userName = $(this).find('#userName').val();
+            var userEmail = $(this).find('#userEmail').val();
+            recipients.push({
+                "TemplateID": document.DocuSignTemplateId,
+                "RoleName": roleName,
+                "UserName": userName,
+                "Email": userEmail,
+                "RequiredYN": true,
+                "LockedYN": true
+            });
+        });
+        return recipients;
+    }
+
     function handleSubmitSendToSign() {
         $.when(
-            getAsync("/api/documents/" + selectedDocumentId)
+            getAsync(siteBaseUrl + "/api/documents/" + selectedDocumentId)
         ).then(function (document) {
-            var requestData = createNewDocuSignEnvelopeRequest(selectedDocumentId, document.DocuSignTemplateId, false);
+            var recipients = getRecipientsFromModal();
+
+            var requestData = createNewDocuSignEnvelopeRequest(selectedDocumentId, document.DocuSignTemplateId, false, recipients);
 
             $.when(
                 postAsync(docuSignApiBaseUrl + "/api/envelopes", requestData)
@@ -124,11 +162,13 @@
     }
 
     function handleSubmitSignNow() {
-        window.open(signInPlaceReturnUrl, "SignNow");
+        var signNowWindow = window.open(signInPlaceReturnUrl, "SignNow", "", true);
         $.when(
-            getAsync("/api/documents/" + selectedDocumentId)
+            getAsync(siteBaseUrl + "/api/documents/" + selectedDocumentId)
         ).then(function (document) {
-            var requestData = createNewDocuSignEnvelopeRequest(selectedDocumentId, document.DocuSignTemplateId, true);
+            var recipients = getRecipientsFromModal();
+
+            var requestData = createNewDocuSignEnvelopeRequest(selectedDocumentId, document.DocuSignTemplateId, true, recipients);
 
             $.when(
                 postAsync(docuSignApiBaseUrl + "/api/envelopes", requestData)
@@ -139,7 +179,7 @@
                         getAsync(docuSignApiBaseUrl + "/api/envelopes/" + response.EnvelopeId + "/inplacesignurl/" + firstInPlaceSigner.ClientUserId + "?signInPlaceReturnUrl=" + signInPlaceReturnUrl)
                     ).then(function (inplaceSignerResponse) {
                         if (inplaceSignerResponse.SigningUrl) {
-                            window.open(inplaceSignerResponse.SigningUrl, "SignNow", "", true);
+                            signNowWindow.location.href = inplaceSignerResponse.SigningUrl;
                             $('#sendToSignModal').modal('hide');
                         } else {
                             $('#sendToSignModal').modal('hide');
@@ -151,34 +191,41 @@
     }
 
     function getAsync(resource) {
-        var headers = new Headers();
-        var options = {
-            method: 'GET',
-            mode: 'cors'
-        };
-        return fetch(resource, options)
-            .then(this.handleErrors)
-            .then((response) => response.json())
-            .catch((error) => console.log(error.message));
+        return $.ajax({
+            url: resource,
+            type: "GET",
+            headers: {
+                'Access-Control-Allow-Origin': '*'
+            },
+            dataType: "json",
+            error: function (jqXHR, textStatus, errorThrown) {
+                showErrorMessage("getAsync", "method", errorThrown, jqXHR);
+            }
+        });
     }
 
     function postAsync(resource, data) {
-        var headers = new Headers();
-        headers.set('Content-Type', 'application/json');
-        var options = {
-            method: 'POST',
-            mode: 'cors',
-            headers: headers,
-            body: JSON.stringify(data)
-        };
-        return fetch(resource, options)
-            .then((response) => response.json());
+        return $.ajax({
+            url: resource,
+            type: "POST",
+            headers: {
+                'Access-Control-Allow-Origin': '*'
+            },
+            data: JSON.stringify(data),
+            contentType: "application/json",
+            dataType: "json",
+            error: function (jqXHR, textStatus, errorThrown) {
+                showErrorMessage("getAsync", "method", errorThrown, jqXHR);
+            }
+        });
     }
 
     var docuSignApiBaseUrl = '@System.Configuration.ConfigurationManager.AppSettings["DocuSignApiBaseUrl"]';
-    var signInPlaceReturnUrl = '@System.Configuration.ConfigurationManager.AppSettings["SignInPlaceReturnUrl"]';
+    var siteBaseUrl = '@System.Configuration.ConfigurationManager.AppSettings["SiteBaseUrl"]';
+    var signInPlaceReturnUrl = siteBaseUrl + '/SignInPlace';
     var selectedDocumentId = -1;
     var signingMode = "";
+    var currentUserEmail = '@ViewBag.CurrentUserEmail';
     $(document).ready(function () {
         getDocuments(clbk_getDocuments);
         $('#btnSubmit').click(handleSubmit);

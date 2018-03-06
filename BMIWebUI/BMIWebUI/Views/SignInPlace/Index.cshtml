@@ -23,32 +23,37 @@
     }
 
     function getAsync(resource) {
-        var headers = new Headers();
-        var options = {
-            method: 'GET',
-            mode: 'cors'
-        };
-        return fetch(resource, options)
-            .then(this.handleErrors)
-            .then((response) => response.json())
-            .catch((error) => console.log(error.message));
+        return $.ajax({
+            url: resource,
+            type: "GET",
+            headers: {
+                'Access-Control-Allow-Origin': '*'
+            },
+            dataType: "json",
+            error: function (jqXHR, textStatus, errorThrown) {
+                showErrorMessage("getAsync", "method", errorThrown, jqXHR);
+            }
+        });
     }
 
     function postAsync(resource, data) {
-        var headers = new Headers();
-        headers.set('Content-Type', 'application/json');
-        var options = {
-            method: 'POST',
-            mode: 'cors',
-            headers: headers,
-            body: JSON.stringify(data)
-        };
-        return fetch(resource, options)
-            .then((response) => response.json());
+        return $.ajax({
+            url: resource,
+            type: "POST",
+            headers: {
+                'Access-Control-Allow-Origin': '*'
+            },
+            data: JSON.stringify(data),
+            contentType: "application/json",
+            dataType: "json",
+            error: function (jqXHR, textStatus, errorThrown) {
+                showErrorMessage("getAsync", "method", errorThrown, jqXHR);
+            }
+        });
     }
 
     var docuSignApiBaseUrl = '@System.Configuration.ConfigurationManager.AppSettings["DocuSignApiBaseUrl"]';
-    var signInPlaceReturnUrl = '@System.Configuration.ConfigurationManager.AppSettings["SignInPlaceReturnUrl"]';
+    var signInPlaceReturnUrl = '@System.Configuration.ConfigurationManager.AppSettings["SiteBaseUrl"]/SignInPlace';
     $(document).ready(function () {
         var envelopeId = '@ViewBag.EnvelopeId';
         if (envelopeId) {
