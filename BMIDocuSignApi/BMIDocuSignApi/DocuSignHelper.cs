@@ -62,20 +62,6 @@ namespace BMIDocuSignApi {
             });
         }
 
-        //public static string GetEnvelopeCorrectionUrl(EInvestorClasses.Document documentInstance) {
-        //    EInvestorClasses.DocuSignConnection docuSignConnection = GetDocuSignConnection(documentInstance);
-
-        //    InitializeApiClient(docuSignConnection);
-        //    string handlerUrl = GetDocuSignHandlerUrl(documentInstance.DocumentInstanceID, documentInstance.DocuSignEnvelopeID, "CorrectingComplete");
-
-        //    CorrectViewRequest cvr = new CorrectViewRequest() { ReturnUrl = handlerUrl };
-
-        //    EnvelopesApi envelopesApi = new EnvelopesApi();
-        //    ViewUrl viewUrl = envelopesApi.CreateCorrectView(docuSignConnection.AccountID, documentInstance.DocuSignEnvelopeID, cvr);
-
-        //    return viewUrl.Url;
-        //}
-
         private static EnvelopeSummary CreateAndSendEnvelope(string envelopeRequestId, string docuSignTemplateId, string subject, List<Signer> signers, string documentName = null, string documentPdfBase64Encoded =null) {
             EnvelopeSummary retVal = null;
 
@@ -200,77 +186,6 @@ namespace BMIDocuSignApi {
             }
             return retVal;
         }
-
-        //public static void ProcessDocuSignConnectResponse(Stream connectResponseStream) {
-        //    StreamReader sr = new StreamReader(connectResponseStream);
-        //    string xml = sr.ReadToEnd();
-
-        //    XmlReader reader = new XmlTextReader(new StringReader(xml));
-        //    XmlSerializer serializer = new XmlSerializer(typeof(DocuSignConnectClasses.DocuSignEnvelopeInformation), "http://www.docusign.net/API/3.0");
-        //    DocuSignConnectClasses.DocuSignEnvelopeInformation envelopeInfo = serializer.Deserialize(reader) as DocuSignConnectClasses.DocuSignEnvelopeInformation;
-
-        //    XmlReader readerForLogging = new XmlTextReader(new StringReader(xml));
-        //    XmlSerializer serializerForLogging = new XmlSerializer(typeof(DocuSignConnectClasses.DocuSignEnvelopeInformation), "http://www.docusign.net/API/3.0");
-        //    DocuSignConnectClasses.DocuSignEnvelopeInformation envelopeInfoForLogging = serializerForLogging.Deserialize(readerForLogging) as DocuSignConnectClasses.DocuSignEnvelopeInformation;
-        //    foreach (DocuSignConnectClasses.DocumentPDF pdf in envelopeInfoForLogging.DocumentPDFs) {
-        //        pdf.PDFBytes = null;
-        //    }
-        //    XmlDocument xdEnvelope = Utils.GetSerializableObjectXmlDocument<DocuSignConnectClasses.DocuSignEnvelopeInformation>(envelopeInfoForLogging);
-        //    Logger.LogInfo("DocuSignHelper", string.Format("Received DocuSignEnvelopeInformation: {0}", xdEnvelope.InnerXml));
-
-        //    EInvestorClasses.SystemConfiguration sysConfig = EInvestorClasses.SystemConfiguration.GetConfiguration();
-        //    try { ProcessDocuSignConnectResponse(sysConfig, envelopeInfo); } catch (Exception ex) { Logger.LogError("DocuSignHelper", "Error processing DocuSign Connect Response", ex); }
-        //}
-
-        //public static void ProcessDocuSignConnectResponse(EInvestorClasses.SystemConfiguration sysConfig, DocuSignConnectClasses.DocuSignEnvelopeInformation envelopeInfo) {
-        //    if (envelopeInfo.EnvelopeStatus.Status == DocuSignConnectClasses.EnvelopeStatusCode.Completed) {
-        //        Dictionary<int, EInvestorClasses.Document> docsDict = GetDocumentsDictionary(envelopeInfo.EnvelopeStatus.EnvelopeID);
-        //        Dictionary<int, DocuSignConnectClasses.DocumentPDF> pdfsDict = GetDocumentPDFsDictionary(envelopeInfo);
-        //        foreach (DocuSignConnectClasses.DocumentStatus docStatus in envelopeInfo.EnvelopeStatus.DocumentStatuses) {
-        //            int documentInstanceID = -1;
-        //            EInvestorClasses.Document doc = null;
-        //            DocuSignConnectClasses.DocumentPDF pdf = null;
-        //            if (TryParseDocumentIdFromName(docStatus.Name, out documentInstanceID) &&
-        //                docsDict.TryGetValue(documentInstanceID, out doc) &&
-        //                pdfsDict.TryGetValue(documentInstanceID, out pdf)) {
-        //                doc.SignedYN = true;
-        //                doc.DocumentStatusCD = EInvestorClasses.Enums.DocumentStatus.ReadyForSubmission;
-        //                doc.Update();
-
-        //                //save the document data to the NAS if applicable
-        //                if (pdf.PDFBytes != null)
-        //                    FileShareHelper.SaveDocumentFile(doc.DocumentInstanceID, doc.FinalDocumentDataVersionID.Value, pdf.PDFBytes);
-
-        //                //submit the document for processing
-        //                DocumentHelper.AutoSubmitDocumentForProcessing(sysConfig, doc);
-        //            }
-        //        }
-        //    }
-        //}
-
-        //private static Dictionary<int, EInvestorClasses.Document> GetDocumentsDictionary(string envelopeID) {
-        //    return EInvestorClasses.CollectionDocument
-        //        .GetAllDocumentsForDocuSignEnvelope(envelopeID)
-        //        .Cast<EInvestorClasses.Document>()
-        //        .ToDictionary(x => x.DocumentInstanceID);
-        //}
-        //private static Dictionary<int, DocuSignConnectClasses.DocumentPDF> GetDocumentPDFsDictionary(DocuSignConnectClasses.DocuSignEnvelopeInformation envelopeInfo) {
-        //    Dictionary<int, DocuSignConnectClasses.DocumentPDF> pdfsDict = new Dictionary<int, DocuSignConnectClasses.DocumentPDF>();
-
-        //    foreach (DocuSignConnectClasses.DocumentPDF pdf in envelopeInfo.DocumentPDFs) {
-        //        int documentInstanceID = -1;
-        //        DocuSignConnectClasses.DocumentPDF existing = null;
-        //        if (TryParseDocumentIdFromName(pdf.Name, out documentInstanceID) &&
-        //           !pdfsDict.TryGetValue(documentInstanceID, out existing))
-        //            pdfsDict.Add(documentInstanceID, pdf);
-        //    }
-        //    return pdfsDict;
-        //}
-        //private static bool TryParseDocumentIdFromName(string docuSignDocumentName, out int documentInstanceID) {
-        //    Regex documentIDRegex = new Regex(@"(\d*)_.*");
-        //    documentInstanceID = -1;
-        //    return (documentIDRegex.IsMatch(docuSignDocumentName) && int.TryParse(documentIDRegex.Replace(docuSignDocumentName, "$1"), out documentInstanceID));
-        //}
 
         public static CreateEnvelopeResponse ProcessNewDocuSignEnvelope(
             string envelopeRequestId,
